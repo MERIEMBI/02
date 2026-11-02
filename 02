@@ -1,0 +1,151 @@
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+
+public class TodoMenu {
+    static final Path FILE = Paths.get("tasks.txt");
+
+    static List<String[]> load() throws IOException {
+        List<String[]> list = new ArrayList<>();
+        if (Files.exists(FILE)) {
+            for (String line : Files.readAllLines(FILE)) {
+                if (!line.trim().isEmpty()) {
+                    String[] p = line.split("\\|", 2);
+                    if (p.length == 2) list.add(p);
+                }
+            }
+        }
+        return list;
+    }
+
+    static void save(List<String[]> list) throws IOException {
+        List<String> lines = new ArrayList<>();
+        for (String[] t : list) lines.add(t[0] + "|" + t[1]);
+        Files.write(FILE, lines);
+    }
+
+    static boolean valid(int n, List<String[]> list) {
+        if (n < 1 || n > list.size()) {
+            System.out.println("Invalid task number.");
+            return false;
+        }
+        return true;
+    }
+
+    static int toInt(String s) {
+        try { return Integer.parseInt(s.trim()); } 
+        catch (NumberFormatException e) { return -1; }
+    }
+
+    static void add(String text) throws IOException {
+        List<String[]> list = load();
+        list.add(new String[]{"todo", text});
+        save(list);
+        System.out.println("Added: " + text);
+    }
+
+    static void edit(int n, String text) throws IOException {
+        List<String[]> list = load();
+        if (valid(n, list)) {
+            list.get(n - 1)[1] = text;
+            save(list);
+            System.out.println("Task " + n + " updated.");
+        }
+    }
+
+    static void delete(int n) throws IOException {
+        List<String[]> list = load();
+        if (valid(n, list)) {
+            list.remove(n - 1);
+            save(list);
+            System.out.println("Task " + n + " deleted.");
+        }
+    }
+
+    static void done(int n) throws IOException {
+        List<String[]> list = load();
+        if (valid(n, list)) {
+            list.get(n - 1)[0] = "done";
+            save(list);
+            System.out.println("Task " + n + " marked as done.");
+        }
+    }
+
+    static void show(String status) throws IOException {
+        List<String[]> list = load();
+        boolean any = false;
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i)[0].equals(status)) {
+                System.out.println((i + 1) + ". [" + status + "] " + list.get(i)[1]);
+                any = true;
+            }
+        }
+        if (!any) System.out.println("(no tasks)");
+    }
+
+    static void help() {
+        System.out.println("How to use:\n" +
+                "  1 -> type the task text\n" +
+                "  2 -> type the task number, then the new text\n" +
+                "  3 -> type the task number to delete\n" +
+                "  4 -> type the task number to mark as done\n" +
+                "  5 -> shows tasks not finished yet\n" +
+                "  6 -> shows finished tasks");
+    }
+
+    public static void main(String[] args) throws IOException {
+        Scanner sc = new Scanner(System.in);
+        while (true) {
+            System.out.println("\n--- TODO MENU ---\n" +
+                    "1. Add a task\n" +
+                    "2. Edit a task\n" +
+                    "3. Delete a task\n" +
+                    "4. Mark a task as done\n" +
+                    "5. Show current tasks\n" +
+                    "6. Show completed tasks\n" +
+                    "7. Show commands (help)\n" +
+                    "8. Quit");
+            System.out.print("Your choice (1-8): ");
+
+            if (!sc.hasNextLine()) break;
+            String choice = sc.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    System.out.print("Task: ");
+                    add(sc.nextLine().trim());
+                    break;
+                case "2":
+                    System.out.print("Task number: ");
+                    int n = toInt(sc.nextLine());
+                    System.out.print("New text: ");
+                    edit(n, sc.nextLine().trim());
+                    break;
+                case "3":
+                    System.out.print("Task number: ");
+                    delete(toInt(sc.nextLine()));
+                    break;
+                case "4":
+                    System.out.print("Task number: ");
+                    done(toInt(sc.nextLine()));
+                    break;
+                case "5":
+                    show("todo");
+                    break;
+                case "6":
+                    show("done");
+                    break;
+                case "7":
+                    help();
+                    break;
+                case "8":
+                    System.out.println("Bye!");
+                    return;
+                default:
+                    System.out.println("Invalid choice, enter a number from 1 to 8.");
+            }
+        }
+    }
+}
