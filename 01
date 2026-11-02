@@ -1,0 +1,159 @@
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+
+public class TodoCLI {
+    static final Path FILE = Paths.get("tasks.txt");
+
+    static List<String[]> load() throws IOException {
+        List<String[]> list = new ArrayList<>();
+        if (Files.exists(FILE)) {
+            for (String line : Files.readAllLines(FILE)) {
+                if (!line.trim().isEmpty()) {
+                    String[] p = line.split("\\|", 2);
+                    if (p.length == 2) list.add(p);
+                }
+            }
+        }
+        return list;
+    }
+
+    static void save(List<String[]> list) throws IOException {
+        List<String> lines = new ArrayList<>();
+        for (String[] t : list) lines.add(t[0] + "|" + t[1]);
+        Files.write(FILE, lines);
+    }
+
+    static boolean valid(int n, List<String[]> list) {
+        if (n < 1 || n > list.size()) {
+            System.out.println("Invalid task number.");
+            return false;
+        }
+        return true;
+    }
+
+    static int toInt(String s) {
+        try { return Integer.parseInt(s.trim()); } 
+        catch (NumberFormatException e) { return -1; }
+    }
+
+    static String join(String[] a, int from) {
+        return String.join(" ", Arrays.copyOfRange(a, from, a.length)).replace("\"", "").trim();
+    }
+
+    static void add(String text) throws IOException {
+        List<String[]> list = load();
+        list.add(new String[]{"todo", text});
+        save(list);
+        System.out.println("Added: " + text);
+    }
+
+    static void edit(int n, String text) throws IOException {
+        List<String[]> list = load();
+        if (valid(n, list)) {
+            list.get(n - 1)[1] = text;
+            save(list);
+            System.out.println("Task " + n + " updated.");
+        }
+    }
+
+    static void delete(int n) throws IOException {
+        List<String[]> list = load();
+        if (valid(n, list)) {
+            list.remove(n - 1);
+            save(list);
+            System.out.println("Task " + n + " deleted.");
+        }
+    }
+
+    static void done(int n) throws IOException {
+        List<String[]> list = load();
+        if (valid(n, list)) {
+            list.get(n - 1)[0] = "done";
+            save(list);
+            System.out.println("Task " + n + " marked as done.");
+        }
+    }
+
+    static void show(String status) throws IOException {
+        List<String[]> list = load();
+        boolean any = false;
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i)[0].equals(status)) {
+                System.out.println((i + 1) + ". [" + status + "] " + list.get(i)[1]);
+                any = true;
+            }
+        }
+        if (!any) System.out.println("(no tasks)");
+    }
+
+    static void help() {
+        System.out.println("Commands:\n" +
+                "  todo add \"task\"        - add a new task\n" +
+                "  todo edit N \"task\"     - change the text of task N\n" +
+                "  todo delete N          - delete task N\n" +
+                "  todo done N            - mark task N as done\n" +
+                "  todo 1 (or list)       - show current tasks\n" +
+                "  todo c (or completed)  - show completed tasks\n" +
+                "  todo help              - show this list");
+    }
+
+    static void run(String[] a) throws IOException {
+        if (a.length > 0 && a[0].equalsIgnoreCase("todo")) {
+            a = Arrays.copyOfRange(a, 1, a.length);
+        }
+        if (a.length == 0) { help(); return; }
+
+        String cmd = a[0].toLowerCase();
+        switch (cmd) {
+            case "add":
+                if (a.length < 2) System.out.println("Usage: add \"task\"");
+                else add(join(a, 1));
+                break;
+            case "edit":
+                if (a.length < 3) System.out.println("Usage: edit N \"task\"");
+                else edit(toInt(a[1]), join(a, 2));
+                break;
+            case "delete", "delet", "d":
+                if (a.length < 2) System.out.println("Usage: delete N");
+                else delete(toInt(a[1]));
+                break;
+            case "done":
+                if (a.length < 2) System.out.println("Usage: done N");
+                else done(toInt(a[1]));
+                break;
+            case "1", "list":
+                show("todo");
+                break;
+            case "c", "completed":
+                show("done");
+                break;
+            default:
+                help();
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        if (args.length > 0) {
+            run(args);
+            return;
+        }
+
+        Scanner sc = new Scanner(System.in);
+        help();
+        while (true) {
+            System.out.print("todo> ");
+            if (!sc.hasNextLine()) break;
+            String line = sc.nextLine().trim();
+            if (line.equalsIgnoreCase("exit")) {
+                System.out.println("Bye!");
+                break;
+            }
+            if (!line.isEmpty()) {
+                run(line.split("\\s+"));
+            }
+        }
+    }
+}
